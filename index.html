@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Custom Typer</title>
+  <style>
+    body {
+      background-color: #000;
+      color: #fff;
+      font-family: monospace, sans-serif;
+      margin: 0;
+      padding: 20px;
+    }
+
+    /* 設定エリア */
+    #setup-area {
+      max-width: 600px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    label {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      font-size: 14px;
+    }
+
+    textarea, input {
+      background-color: #222;
+      color: #fff;
+      border: 1px solid #444;
+      padding: 10px;
+      border-radius: 4px;
+      font-size: 16px;
+    }
+
+    button {
+      background-color: #fff;
+      color: #000;
+      border: none;
+      padding: 12px;
+      font-weight: bold;
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 16px;
+    }
+
+    button:hover {
+      background-color: #ccc;
+    }
+
+    /* タイピング表示エリア */
+    #display-area {
+      display: none;
+      white-space: pre-wrap; /* 改行やスペースを維持 */
+      word-break: break-all;
+      min-height: 100vh;
+      outline: none;
+    }
+
+    /* カーソルの点滅アニメーション */
+    .cursor {
+      display: inline-block;
+      width: 10px;
+      height: 1em;
+      background-color: #fff;
+      vertical-align: middle;
+      animation: blink 0.8s infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 設定画面 -->
+  <div id="setup-area">
+    <h2>カスタムタイパー設定</h2>
+    <label>
+      表示したい文字列（事前入力）:
+      <textarea id="target-text" rows="8" placeholder="ここに表示させたいテキストを入力してください..."></textarea>
+    </label>
+    <label>
+      文字サイズ (px):
+      <input type="number" id="font-size" value="24" min="10" max="100">
+    </label>
+    <button id="start-btn">タイピング画面へ移行</button>
+  </div>
+
+  <!-- タイピング実行画面 -->
+  <div id="display-area" tabindex="0">
+    <span id="typed-text"></span><span class="cursor"></span>
+  </div>
+
+  <script>
+    const setupArea = document.getElementById('setup-area');
+    const displayArea = document.getElementById('display-area');
+    const targetTextInput = document.getElementById('target-text');
+    const fontSizeInput = document.getElementById('font-size');
+    const startBtn = document.getElementById('start-btn');
+    const typedTextSpan = document.getElementById('typed-text');
+
+    let fullText = '';
+    let currentIndex = 0;
+    let isTypingMode = false;
+
+    // スタートボタンを押した時の処理
+    startBtn.addEventListener('click', () => {
+      fullText = targetTextInput.value;
+      const fontSize = fontSizeInput.value + 'px';
+
+      if (!fullText) {
+        alert('文字列を入力してください。');
+        return;
+      }
+
+      // 文字サイズをセット
+      displayArea.style.fontSize = fontSize;
+
+      // 画面切り替え
+      setupArea.style.display = 'none';
+      displayArea.style.display = 'block';
+      displayArea.focus(); // フォーカスを当ててキー入力を受付可能にする
+      
+      isTypingMode = true;
+    });
+
+    // キーが押された時の処理
+    window.addEventListener('keydown', (e) => {
+      if (!isTypingMode) return;
+
+      // エスケープキーで設定画面に戻る機能
+      if (e.key === 'Escape') {
+        isTypingMode = false;
+        displayArea.style.display = 'none';
+        setupArea.style.display = 'flex';
+        typedTextSpan.textContent = '';
+        currentIndex = 0;
+        return;
+      }
+
+      // 特定の特殊キー（Shift, Ctrl, Altなど）はタイピング進行から除外
+      if (['Shift', 'Control', 'Alt', 'Meta', 'CapsLock', 'Tab'].includes(e.key)) {
+        return;
+      }
+
+      // 1文字追加
+      if (currentIndex < fullText.length) {
+        typedTextSpan.textContent += fullText[currentIndex];
+        currentIndex++;
+        
+        // 画面最下部までスクロール
+        window.scrollTo(0, document.body.scrollHeight);
+      }
+    });
+  </script>
+</body>
+</html>
