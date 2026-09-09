@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Custom Typer</title>
   <style>
     body {
@@ -11,6 +11,7 @@
       font-family: monospace, sans-serif;
       margin: 0;
       padding: 20px;
+      touch-action: manipulation; /* ダブルタップズームの防止 */
     }
 
     /* 設定エリア */
@@ -60,21 +61,44 @@
       word-break: break-all;
       min-height: 100vh;
       outline: none;
+      cursor: pointer; /* タップできることがわかりやすいように */
+      -webkit-user-select: none; /* タップ時に青くテキスト選択されないようにする */
+      user-select: none;
     }
 
-    /* カーソルの点滅アニメーション */
+    /* 細いカーソルの点滅アニメーション */
     .cursor {
       display: inline-block;
-      width: 2px;
-      height: 1em;
+      width: 2px; /* 細いバー */
+      height: 1.1em;
       background-color: #fff;
-      vertical-align: middle;
+      vertical-align: text-bottom;
+      margin-left: 2px;
       animation: blink 0.8s infinite;
     }
 
     @keyframes blink {
       0%, 100% { opacity: 1; }
       50% { opacity: 0; }
+    }
+
+    /* iPad/スマホ用の設定に戻るボタン（画面左上にうっすら表示） */
+    #back-btn {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      opacity: 0.3;
+      background: #333;
+      color: #fff;
+      border: 1px solid #666;
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      z-index: 100;
+      display: none;
+    }
+    #back-btn:hover {
+      opacity: 1;
     }
   </style>
 </head>
@@ -91,10 +115,11 @@
       文字サイズ (px):
       <input type="number" id="font-size" value="24" min="10" max="100">
     </label>
-    <button id="start-btn">タイピング画面へ移行</button>
+    <button id="start-btn">スタート</button>
   </div>
 
   <!-- タイピング実行画面 -->
+  <button id="back-btn">設定に戻る</button>
   <div id="display-area" tabindex="0">
     <span id="typed-text"></span><span class="cursor"></span>
   </div>
@@ -105,11 +130,31 @@
     const targetTextInput = document.getElementById('target-text');
     const fontSizeInput = document.getElementById('font-size');
     const startBtn = document.getElementById('start-btn');
+    const backBtn = document.getElementById('back-btn');
     const typedTextSpan = document.getElementById('typed-text');
 
     let fullText = '';
     let currentIndex = 0;
     let isTypingMode = false;
+
+    // 1文字進める共通処理
+    function typeNextChar() {
+      if (currentIndex < fullText.length) {
+        typedTextSpan.textContent += fullText[currentIndex];
+        currentIndex++;
+        window.scrollTo(0, document.body.scrollHeight);
+      }
+    }
+
+    // 設定画面に戻る処理
+    function resetToSetup() {
+      isTypingMode = false;
+      displayArea.style.display = 'none';
+      backBtn.style.display = 'none';
+      setupArea.style.display = 'flex';
+      typedTextSpan.textContent = '';
+      currentIndex = 0;
+    }
 
     // スタートボタンを押した時の処理
     startBtn.addEventListener('click', () => {
@@ -121,44 +166,45 @@
         return;
       }
 
-      // 文字サイズをセット
       displayArea.style.fontSize = fontSize;
-
-      // 画面切り替え
       setupArea.style.display = 'none';
       displayArea.style.display = 'block';
-      displayArea.focus(); // フォーカスを当ててキー入力を受付可能にする
+      backBtn.style.display = 'block';
+      displayArea.focus();
       
       isTypingMode = true;
     });
 
-    // キーが押された時の処理
+    // キーボード入力時の処理
     window.addEventListener('keydown', (e) => {
       if (!isTypingMode) return;
 
-      // エスケープキーで設定画面に戻る機能
       if (e.key === 'Escape') {
-        isTypingMode = false;
-        displayArea.style.display = 'none';
-        setupArea.style.display = 'flex';
-        typedTextSpan.textContent = '';
-        currentIndex = 0;
+        resetToSetup();
         return;
       }
 
-      // 特定の特殊キー（Shift, Ctrl, Altなど）はタイピング進行から除外
       if (['Shift', 'Control', 'Alt', 'Meta', 'CapsLock', 'Tab'].includes(e.key)) {
         return;
       }
 
-      // 1文字追加
-      if (currentIndex < fullText.length) {
-        typedTextSpan.textContent += fullText[currentIndex];
-        currentIndex++;
-        
-        // 画面最下部までスクロール
-        window.scrollTo(0, document.body.scrollHeight);
-      }
+      typeNextChar();
+    });
+
+    // 画面タップ/クリック時の処理 (iPad・スマホ用)
+    displayArea.addEventListener('pointerdown', (e) => {
+      if (!isTypingMode) return;
+      
+      // 「設定に戻る」ボタンを押した場合はタイピングを進めない
+      if (e.target === backBtn) return;
+
+      typeNextChar();
+    });
+
+    // 設定に戻るボタンのタップ処理
+    backBtn.addEventListener('click', (e) => {
+      e.stopPropagation(); // タップイベントの連動を防止
+      resetToSetup();
     });
   </script>
 </body>
